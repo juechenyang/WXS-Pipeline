@@ -25,7 +25,7 @@ args = parser.parse_args()
 rd1_path = args.read1
 rd2_path = args.read2
 
-if not rd1_path or rd2_path:
+if not rd1_path or not rd2_path:
     print("missing required pair-end reads")
     sys.exit()
 
