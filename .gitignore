@@ -1,1 +1,12 @@
+# dirs
 .idea/*
+gdc_download/*
+outputs/*
+__pycache__/*
+data/*
+# file types
+*.csv
+*.tsc
+*.pdf
+*.fq
+*.fastq
