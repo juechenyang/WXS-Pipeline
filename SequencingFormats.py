@@ -4,6 +4,8 @@ created by Juechen Yang at 2/26/20
 """
 import os, time,re
 import subprocess as sb
+import tools
+from StaticPath import StaticPath
 
 class Fastq:
     '''
@@ -50,9 +52,8 @@ class BAM:
     '''
     Class for BAM file
     '''
+
     def __init__(self, bam_path):
-        #define the base dir
-        self.__base_dir = os.path.dirname(os.path.realpath(__file__))
 
         # converted the path to absolute path
         abs_bam_path = os.path.abspath(bam_path)
@@ -72,41 +73,83 @@ class BAM:
         return self.__path
 
     #sort the bam file
-    def __sort_bam(self):
+    def sort_bam(self, create_index=True, keep_origin=False):
+        sorted_bam = ".".join([self.__path.split(".bam")[0], "sorted", "bam"])
         try:
             print("started sorting bam at ", time.ctime())
-            sort_bam = os.path.join(self.__base_dir, "input_sorted.bam")
-            command = "samtools sort -n " + self.__path + " -o " + sort_bam
-            process = sb.run([command], shell=True)
-            process.check_returncode()
-            return sort_bam
+            #construct the command
+            cmd = " ".join(['java', '-jar', StaticPath.picard_path, 'SortSam', "CREATE_INDEX="+str(create_index).lower(),
+                            'INPUT='+self.__path, 'OUTPUT='+sorted_bam, 'SORT_ORDER=coordinate', 'VALIDATION_STRINGENCY=STRICT'])
+            process = sb.run([cmd], shell=True, check=True)
+
+            # Whether to keep original bam
+            if keep_origin:
+                print(" ".join([self.__path, 'was', 'kept']))
+            else:
+                os.remove(self.__path)
+                print(" ".join([self.__path, 'was', 'removed']))
+
+
+            return BAM(sorted_bam)
         except:
-            print("sort process error")
+            print("Internal process of sorting bam got error!")
             return False
 
     def to_fastq(self):
-        #sort bam
-        sorted_bam = self.__sort_bam()
-        #check if sort was successful
-        if(sorted_bam):
-            #convert bam
-            try:
-                print('started converting bam to fastq at ', time.ctime())
-                out_fq1 = os.path.join(self.__base_dir, "aln.end1.fq")
-                out_fq2 = os.path.join(self.__base_dir, "aln.end2.fq")
-                command = "bedtools bamtofastq -i "+ sorted_bam +" -fq " + out_fq1 + " -fq2 "+ out_fq2
-                process = sb.run([command], shell=True)
-                process.check_returncode()
-                print('successfully converted!')
-                #remove the sorted bam file
-                os.remove(sorted_bam)
-                #return the output fastqs
-                return [out_fq1, out_fq2]
-            except:
-                print("oops! some errors happen, please try it again")
-                return False
-        else:
-            print("error, bam was not sorted")
-            return False
+        '''
+        picard solutions
+        :return: a list of path indicating two fastqs
+        '''
+        try:
+            print('started converting bam to fastq at ', time.ctime())
+            #checkout the fastq dir
+            fastq_dir = os.path.join(StaticPath.base_dir, "FASTQs")
+            tools.checkout_dir(fastq_dir)
+            #sepcify the output fastqs
+            out_fq1 = os.path.join(fastq_dir, "aln.end1.fq")
+            out_fq2 = os.path.join(fastq_dir, "aln.end2.fq")
 
+            #construct the command
+            command = " ".join(["java", '-jar', StaticPath.picard_path, 'SamToFastq', 'I='+self.__path, 'FASTQ='+out_fq1, 'SECOND_END_FASTQ='+out_fq2])
+            process = sb.run([command], shell=True, stdout=sb.DEVNULL)
+            process.check_returncode()
+            print('successfully converted!')
+            return [out_fq1, out_fq2]
+        except:
+            print("oops! converting fastq failed, check the input bam")
+            return False
+    def merge_bam(self, keep_origin=False):
+        merged_bam = ".".join([self.__path.split(".bam")[0], "merged", "bam"])
+        print('started merging bam at ', time.ctime())
+        cmd = " ".join(['java', '-jar', StaticPath.picard_path, 'MergeSamFiles', 'ASSUME_SORTED=false', 'CREATE_INDEX=true',
+                        'INPUT='+self.__path, 'MERGE_SEQUENCE_DICTIONARIES=false', 'OUTPUT='+merged_bam, 'SORT_ORDER=coordinate',
+                        'USE_THREADING=true', 'VALIDATION_STRINGENCY=STRICT'])
+        try:
+            sb.run([cmd], shell=True, check=True)
+            # Whether to keep original bam
+            if keep_origin:
+                print(" ".join([self.__path, 'was', 'kept']))
+            else:
+                os.remove(self.__path)
+                print(" ".join([self.__path, 'was', 'removed']))
+            return BAM(merged_bam)
+        except:
+            print("Internal process of merge bam got error!")
+    def mark_duplicate(self, keep_origin=False):
+        markdup_bam = ".".join([self.__path.split(".bam")[0], "markdup", "bam"])
+        print('started mark duplicate at ', time.ctime())
+        cmd = " ".join(['java', '-jar', StaticPath.picard_path, 'MarkDuplicates', 'CREATE_INDEX=true', 'INPUT='+self.__path,
+                        'OUTPUT='+ markdup_bam, 'M='+os.path.join(StaticPath.IntermediateDir, 'marked_dup_metrics.txt'),
+                        'VALIDATION_STRINGENCY=STRICT'])
+        try:
+            sb.run([cmd], shell=True, check=True)
+            # Whether to keep original bam
+            if keep_origin:
+                print(" ".join([self.__path, 'was', 'kept']))
+            else:
+                os.remove(self.__path)
+                print(" ".join([self.__path, 'was', 'removed']))
+            return BAM(markdup_bam)
+        except:
+            print("Internal process of mark duplicate got error!")
 

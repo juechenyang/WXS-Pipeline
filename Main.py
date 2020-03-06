@@ -3,6 +3,7 @@ created by Juechen Yang at 2/26/20
 
 """
 from SequencingFormats import Fastq, BAM
+from StaticPath import StaticPath
 import argparse
 import sys,time,os, tools
 import SequencingAligner as SeqAligner
@@ -27,9 +28,6 @@ FromBam = args.StartsFromBam
 rd1_path = args.fq1
 rd2_path = args.fq2
 bam_path = args.bam
-
-#specify the base dir
-base_dir = os.path.dirname(os.path.realpath(__file__))
 
 if FromBam:
     print("started from bam at ", time.ctime())
@@ -64,32 +62,58 @@ else:
 
 
 '''
+
 Step2: align the pair-end reads to reference genome
-'''
 
 '''
-used for debug
-'''
-#initialize pair-end reads obj
-# rd1_path = os.path.join(base_dir, 'aln.end1.fq')
-# rd2_path = os.path.join(base_dir, 'aln.end2.fq')
-
 
 rd1 = Fastq(rd1_path)
 rd2 = Fastq(rd2_path)
 
-#specify the output dir
-out_dir = os.path.join(base_dir, "outputs")
-tools.checkout_dir(out_dir)
-out_bam = os.path.join(out_dir, "realigned.bam")
+out_dir = os.path.join(StaticPath.base_dir, "outputs")
+out_bam_dir = os.path.join(out_dir, "bams")
+tools.checkout_dir(out_bam_dir)
+out_bam = os.path.join(out_bam_dir  , "realigned.bam")
 
 
 #check if read length is greater than or equals to 70
-print("read length is ", str(rd1.get_read_length()))
+print("started alignment at ", time.ctime())
 if rd1.get_read_length() >= 70:
-    print("started alignment at ", time.ctime())
+    print("read length is ", str(rd1.get_read_length()), ", So bwa use mem mode")
     aligner = SeqAligner.BWA('mem')
-    aligner.start_alignment(rd1, rd2, out_bam)
+    aligned_bam = aligner.start_alignment(rd1, rd2, out_bam)
+
+else:
+    print("read length is ", str(rd1.get_read_length()), ", So bwa use aln mode")
+    aligner = SeqAligner.BWA('aln')
+    aligned_bam = aligner.start_alignment(rd1, rd2, out_bam)
+
+'''
+
+Step3 sort bam
+
+'''
+#sort the aligned bam
+sorted_bam = aligned_bam.sort_bam()
+
+
+'''
+
+Step4: merge bam
+
+'''
+
+merged_bam = sorted_bam.merge_bam()
+
+'''
+
+Step5: mark duplicate
+
+'''
+markdup_bam = merged_bam.mark_duplicate()
+
+print(markdup_bam.get_path())
+
 
 
 

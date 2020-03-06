@@ -2,8 +2,10 @@
 .idea/*
 gdc_download/*
 outputs/*
+FASTQs/*
 __pycache__/*
 data/*
+IntermediateFiles/*
 # file types
 *.csv
 *.tsc
