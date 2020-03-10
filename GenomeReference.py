@@ -3,16 +3,17 @@ created by Juechen Yang at 2/28/20
 
 """
 import os
+from StaticPath import StaticPath
+from subprocess import run
+import subprocess
 
 class GenomeReference:
     '''
     class locates reference genome files
     '''
-    base_dir = os.path.dirname(os.path.realpath(__file__))
-    genome_dir = os.path.join(base_dir, 'data')
     # specify the path of reference_fasta and annotation_gtf
-    __reference_fasta = os.path.join(genome_dir, 'GRCh38.d1.vd1.fa')
-    __annotation_gtf = os.path.join(genome_dir, 'gencode.v22.annotation.gtf')
+    __reference_fasta = os.path.join(StaticPath.DataDir, 'GRCh38.d1.vd1.fa')
+    __annotation_gtf = os.path.join(StaticPath.DataDir, 'gencode.v22.annotation.gtf')
 
     @staticmethod
     def get_reference_fasta():
@@ -21,3 +22,16 @@ class GenomeReference:
     @staticmethod
     def get_annotation_gtf():
         return GenomeReference.__annotation_gtf
+
+    @staticmethod
+    def create_index():
+        #construct the command
+        cmd = " ".join(['bwa', 'index', GenomeReference.__reference_fasta])
+        try:
+            run([cmd], shell=True, check=True)
+
+        except FileNotFoundError:
+            print(" ".join([GenomeReference.__reference_fasta, 'was not found']))
+
+        except subprocess.CalledProcessError:
+            print('bwa index got error')

@@ -7,6 +7,9 @@ from StaticPath import StaticPath
 import argparse
 import sys,time,os, tools
 import SequencingAligner as SeqAligner
+from GenomeReference import GenomeReference
+from os import listdir
+from os.path import isfile, join
 
 parser = argparse.ArgumentParser(description='''
 ************************************************************************************************
@@ -15,6 +18,15 @@ Basic description:
 Integrated Pipeline for Whole Exome Sequencing
 
 ************************************************************************************************
+
+Usage instructions:
+
+    1. if you start this pipeline from a bam file, please activate bam mode use "--StartsFromBam" and specify the path of your bam by using "--bam".
+    In this mode, "--fq1" and "--fq2" command will be automatically ignored
+    
+    2. if you start this pipeline from pair-end fastq files, please ignore both "--StartsFromBam" and "--bam" parameters
+    and directly specify the path of "--fq1" and "--fq2"
+    
     ''',formatter_class=argparse.RawTextHelpFormatter
 )
 parser.add_argument('--StartsFromBam', default=False, action='store_true', help="Whether starts the pipeline from bam file, if yes then --bam must be specified")
@@ -28,6 +40,14 @@ FromBam = args.StartsFromBam
 rd1_path = args.fq1
 rd2_path = args.fq2
 bam_path = args.bam
+
+#check if index has been build
+all_files_in_data_dir = [f for f in listdir(StaticPath.DataDir)
+                         if isfile(join(StaticPath.DataDir, f)) and f.endswith('sa')]
+if len(all_files_in_data_dir) == 0:
+    print("index has not been built, try to rebuild")
+    GenomeReference.create_index()
+
 
 if FromBam:
     print("started from bam at ", time.ctime())
