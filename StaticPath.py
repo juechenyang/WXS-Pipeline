@@ -16,3 +16,15 @@ class StaticPath:
     # define intermediate file dir
     DataDir = os.path.join(base_dir, "data")
     tools.checkout_dir(DataDir)
+
+    #define dbsnp location
+    dbsnp = os.path.join(DataDir, "common_all_20170710.vcf")
+
+    # define germline resource location
+    germline_file = os.path.join(DataDir, "af-only-gnomad.hg38.vcf.gz")
+
+    #define panel of normal
+    pon = os.path.join(DataDir, "1000g_pon.hg38.vcf.gz")
+
+
+

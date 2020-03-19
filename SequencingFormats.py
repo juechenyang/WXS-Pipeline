@@ -2,10 +2,11 @@
 created by Juechen Yang at 2/26/20
 
 """
-import os, time,re
+import os, time,re,sys
 import subprocess as sb
 import tools
 from StaticPath import StaticPath
+from GenomeReference import GenomeReference
 
 class Fastq:
     '''
@@ -72,8 +73,17 @@ class BAM:
     def get_path(self):
         return self.__path
 
+    def fetch_sample_id(self):
+        # define sample_id
+        self.__sample_id = self.__path.split('.')[0]
+        return self.__sample_id
+
+    def __get_bqsr_path(self):
+        sample_id = self.fetch_sample_id()
+        return ".".join([sample_id, "bqsr", "table"])
+
     #sort the bam file
-    def sort_bam(self, create_index=True, keep_origin=False):
+    def sort_bam(self, create_index=False, keep_origin=False):
         sorted_bam = ".".join([self.__path.split(".bam")[0], "sorted", "bam"])
         try:
             print("started sorting bam at ", time.ctime())
@@ -118,10 +128,12 @@ class BAM:
         except:
             print("oops! converting fastq failed, check the input bam")
             return False
-    def merge_bam(self, keep_origin=False):
+
+
+    def merge_bam(self, keep_origin=False, create_index=False):
         merged_bam = ".".join([self.__path.split(".bam")[0], "merged", "bam"])
         print('started merging bam at ', time.ctime())
-        cmd = " ".join(['java', '-jar', StaticPath.picard_path, 'MergeSamFiles', 'ASSUME_SORTED=false', 'CREATE_INDEX=true',
+        cmd = " ".join(['java', '-jar', StaticPath.picard_path, 'MergeSamFiles', 'ASSUME_SORTED=false', 'CREATE_INDEX='+str(create_index).lower(),
                         'INPUT='+self.__path, 'MERGE_SEQUENCE_DICTIONARIES=false', 'OUTPUT='+merged_bam, 'SORT_ORDER=coordinate',
                         'USE_THREADING=true', 'VALIDATION_STRINGENCY=STRICT'])
         try:
@@ -135,10 +147,12 @@ class BAM:
             return BAM(merged_bam)
         except:
             print("Internal process of merge bam got error!")
-    def mark_duplicate(self, keep_origin=False):
+
+
+    def mark_duplicate(self, keep_origin=False, create_index=False):
         markdup_bam = ".".join([self.__path.split(".bam")[0], "markdup", "bam"])
         print('started mark duplicate at ', time.ctime())
-        cmd = " ".join(['java', '-jar', StaticPath.picard_path, 'MarkDuplicates', 'CREATE_INDEX=true', 'INPUT='+self.__path,
+        cmd = " ".join(['java', '-jar', StaticPath.picard_path, 'MarkDuplicates', 'CREATE_INDEX='+str(create_index).lower(), 'INPUT='+self.__path,
                         'OUTPUT='+ markdup_bam, 'M='+os.path.join(StaticPath.IntermediateDir, 'marked_dup_metrics.txt'),
                         'VALIDATION_STRINGENCY=STRICT'])
         try:
@@ -152,4 +166,42 @@ class BAM:
             return BAM(markdup_bam)
         except:
             print("Internal process of mark duplicate got error!")
+
+    def make_BQSR(self):
+        print("start making bqsr table at "+time.ctime())
+        bqsr_table = self.__get_bqsr_path()
+        cmd = " ".join(['gatk', 'BaseRecalibrator', '-I', self.__path, '-R', GenomeReference.get_reference_fasta(),
+                        '--known-sites', StaticPath.dbsnp, '-O', bqsr_table])
+        try:
+            sb.run([cmd], shell=True, check=True)
+        except:
+            print('Internal process of make BQSR failed')
+
+    def apply_BQSR(self, create_index=False, keep_origin=False):
+        bqsr_bam = ".".join([self.__path.split(".bam")[0], "bqsr", "bam"])
+        print("start applying bqsr to output bam at "+time.ctime())
+        bqsr_table = self.__get_bqsr_path()
+
+        #check if bqsr table is ready
+        if not os.path.isfile(bqsr_table):
+            print(" ".join([bqsr_table, 'is not a prepared']))
+            sys.exit(1)
+
+        cmd = " ".join(['gatk', 'ApplyBQSR', '-R', GenomeReference.get_reference_fasta(), '-I', self.__path,
+                        '--bqsr-recal-file', bqsr_table, '--create-output-bam-index', str(create_index).lower(),
+                        '-O', bqsr_bam])
+        try:
+            sb.run([cmd], shell=True, check=True)
+            # Whether to keep original bam
+            if keep_origin:
+                print(" ".join([self.__path, 'was', 'kept']))
+            else:
+                os.remove(self.__path)
+                print(" ".join([self.__path, 'was', 'removed']))
+        except sb.CalledProcessError as e:
+            print('Internal of apply bqsr failed')
+            print(e)
+
+        return BAM(bqsr_bam)
+
 

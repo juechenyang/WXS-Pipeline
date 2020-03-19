@@ -131,8 +131,37 @@ Step5: mark duplicate
 
 '''
 markdup_bam = merged_bam.mark_duplicate()
-
 print(markdup_bam.get_path())
+'''
+
+Step6:create index and diction for reference genome
+
+'''
+if not isfile(GenomeReference.reference_index):
+    GenomeReference.index_fasta()
+if not isfile(GenomeReference.reference_dict):
+    GenomeReference.make_diction()
+
+
+'''
+
+Step7: BaseRecalibration
+
+'''
+markdup_bam.make_BQSR()
+bqsr_bam = markdup_bam.apply_BQSR(create_index=True)
+
+print(bqsr_bam.get_path())
+
+'''
+
+Step8: Mutech2 calling mutation
+
+'''
+
+
+
+
 
 
 
