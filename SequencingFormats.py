@@ -75,12 +75,16 @@ class BAM:
 
     def fetch_sample_id(self):
         # define sample_id
-        self.__sample_id = self.__path.split('.')[0]
+        without_extra_slash = os.path.normpath(self.__path.split('.')[0])
+        self.__sample_id = os.path.basename(without_extra_slash)
+
         return self.__sample_id
 
     def __get_bqsr_path(self):
         sample_id = self.fetch_sample_id()
-        return ".".join([sample_id, "bqsr", "table"])
+        table_name = ".".join([sample_id, "bqsr", "table"])
+        table = os.path.join(StaticPath.IntermediateDir, table_name)
+        return table
 
     #sort the bam file
     def sort_bam(self, create_index=False, keep_origin=False):
@@ -89,7 +93,8 @@ class BAM:
             print("started sorting bam at ", time.ctime())
             #construct the command
             cmd = " ".join(['java', '-jar', StaticPath.picard_path, 'SortSam', "CREATE_INDEX="+str(create_index).lower(),
-                            'INPUT='+self.__path, 'OUTPUT='+sorted_bam, 'SORT_ORDER=coordinate', 'VALIDATION_STRINGENCY=STRICT'])
+                            'INPUT='+self.__path, 'OUTPUT='+sorted_bam, 'TMP_DIR=', StaticPath.tmp_dir,
+                            'SORT_ORDER=coordinate', 'VALIDATION_STRINGENCY=STRICT'])
             process = sb.run([cmd], shell=True, check=True)
 
             # Whether to keep original bam
@@ -105,7 +110,7 @@ class BAM:
             print("Internal process of sorting bam got error!")
             return False
 
-    def to_fastq(self):
+    def to_fastq(self, sample_id):
         '''
         picard solutions
         :return: a list of path indicating two fastqs
@@ -116,8 +121,8 @@ class BAM:
             fastq_dir = os.path.join(StaticPath.base_dir, "FASTQs")
             tools.checkout_dir(fastq_dir)
             #sepcify the output fastqs
-            out_fq1 = os.path.join(fastq_dir, "aln.end1.fq")
-            out_fq2 = os.path.join(fastq_dir, "aln.end2.fq")
+            out_fq1 = os.path.join(fastq_dir, sample_id+"1.fq")
+            out_fq2 = os.path.join(fastq_dir, sample_id+"2.fq")
 
             #construct the command
             command = " ".join(["java", '-jar', StaticPath.picard_path, 'SamToFastq', 'I='+self.__path, 'FASTQ='+out_fq1, 'SECOND_END_FASTQ='+out_fq2])

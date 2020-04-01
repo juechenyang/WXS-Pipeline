@@ -22,11 +22,11 @@ class BWA:
     def start_alignment(self, rd1, rd2, outbam):
 
         ref_fasta = GenomeReference.get_reference_fasta()
-        sample_id = outbam.split('.')[0]
+        sample_id = os.path.basename(os.path.normpath(outbam.split('.')[0]))
 
         if self.__mode == 'mem':
             # construct bwa command
-            cmd = " ".join(["bwa", self.__mode, "-t", "8", "-R", "'@RG\\tID:"+sample_id+"\\tSM:bar\\tPL:ILLUMINA'", "-T", "0", ref_fasta, rd1.get_path(), rd2.get_path(),
+            cmd = " ".join(["bwa", self.__mode, "-t", "8", "-R", "'@RG\\tID:TARGET\\tSM:"+sample_id+"\\tPL:ILLUMINA'", "-T", "0", ref_fasta, rd1.get_path(), rd2.get_path(),
                             "|", "samtools", "view", "-Shb", "-o", outbam])
             try:
                 process = sb.run([cmd], shell=True)
@@ -42,7 +42,7 @@ class BWA:
             # cmd = " ".join(["bwa", self.__mode, "-t", "8", ref_fasta, rd1.get_path(), ">", sai1_path])
             cmd = " ".join(["bwa", self.__mode, "-t", "8", ref_fasta, rd1.get_path(), ">", sai1_path, "&&",
                             "bwa", self.__mode, "-t", "8", ref_fasta, rd2.get_path(), ">", sai2_path, "&&",
-                            "bwa", "sampe", "-R", "'@RG\\tID:foo\\tSM:bar\\tPL:ILLUMINA'", ref_fasta, sai1_path, sai2_path, rd1.get_path(), rd2.get_path(),
+                            "bwa", "sampe", "-R", "'@RG\\tID:TARGET\\tSM:"+sample_id+"\\tPL:ILLUMINA'", ref_fasta, sai1_path, sai2_path, rd1.get_path(), rd2.get_path(),
                             "|", "samtools", "view", "-Shb", "-o", outbam])
             try:
                 process = sb.run([cmd], shell=True, check=True)
