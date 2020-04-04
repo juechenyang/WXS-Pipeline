@@ -111,12 +111,12 @@ print("started alignment at ", time.ctime())
 if rd1.get_read_length() >= 70:
     print("read length is ", str(rd1.get_read_length()), ", So bwa use mem mode")
     aligner = SeqAligner.BWA('mem')
-    aligned_bam = aligner.start_alignment(rd1, rd2, out_bam)
+    aligned_bam = aligner.start_alignment(rd1, rd2, out_bam, number_of_thread=16)
 
 else:
     print("read length is ", str(rd1.get_read_length()), ", So bwa use aln mode")
     aligner = SeqAligner.BWA('aln')
-    aligned_bam = aligner.start_alignment(rd1, rd2, out_bam)
+    aligned_bam = aligner.start_alignment(rd1, rd2, out_bam, number_of_thread=16)
 
 '''
 

@@ -34,7 +34,7 @@ class StaticPath:
 class Separators:
 
     #sample name separator
-    sample_name_separator = ','
+    sample_name_separator = '.'
 
 
 

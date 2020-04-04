@@ -121,8 +121,8 @@ class BAM:
             fastq_dir = os.path.join(StaticPath.base_dir, "FASTQs")
             tools.checkout_dir(fastq_dir)
             #sepcify the output fastqs
-            out_fq1 = os.path.join(fastq_dir, sample_id+"1.fq")
-            out_fq2 = os.path.join(fastq_dir, sample_id+"2.fq")
+            out_fq1 = os.path.join(fastq_dir, sample_id+".1.fq")
+            out_fq2 = os.path.join(fastq_dir, sample_id+".2.fq")
 
             #construct the command
             command = " ".join(["java", '-jar', StaticPath.picard_path, 'SamToFastq', 'I='+self.__path, 'FASTQ='+out_fq1, 'SECOND_END_FASTQ='+out_fq2])

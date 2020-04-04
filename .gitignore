@@ -1,7 +1,7 @@
 # dirs
 .idea/*
 gdc_download/*
-out_files/*
+outfiles/*
 FASTQs/*
 __pycache__/*
 data/*
@@ -12,3 +12,4 @@ IntermediateFiles/*
 *.pdf
 *.fq
 *.fastq
+*.txt

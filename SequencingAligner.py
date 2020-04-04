@@ -19,14 +19,14 @@ class BWA:
             import sys
             sys.exit()
 
-    def start_alignment(self, rd1, rd2, outbam):
+    def start_alignment(self, rd1, rd2, outbam, number_of_thread=8):
 
         ref_fasta = GenomeReference.get_reference_fasta()
         sample_id = os.path.basename(os.path.normpath(outbam.split('.')[0]))
 
         if self.__mode == 'mem':
             # construct bwa command
-            cmd = " ".join(["bwa", self.__mode, "-t", "8", "-R", "'@RG\\tID:TARGET\\tSM:"+sample_id+"\\tPL:ILLUMINA'", "-T", "0", ref_fasta, rd1.get_path(), rd2.get_path(),
+            cmd = " ".join(["bwa", self.__mode, "-t", str(number_of_thread), "-R", "'@RG\\tID:TARGET\\tSM:"+sample_id+"\\tPL:ILLUMINA'", "-T", "0", ref_fasta, rd1.get_path(), rd2.get_path(),
                             "|", "samtools", "view", "-Shb", "-o", outbam])
             try:
                 process = sb.run([cmd], shell=True)
@@ -40,8 +40,8 @@ class BWA:
             sai1_path = os.path.join(IntermediateDir, 'sai_1.sai')
             sai2_path = os.path.join(IntermediateDir, 'sai_2.sai')
             # cmd = " ".join(["bwa", self.__mode, "-t", "8", ref_fasta, rd1.get_path(), ">", sai1_path])
-            cmd = " ".join(["bwa", self.__mode, "-t", "8", ref_fasta, rd1.get_path(), ">", sai1_path, "&&",
-                            "bwa", self.__mode, "-t", "8", ref_fasta, rd2.get_path(), ">", sai2_path, "&&",
+            cmd = " ".join(["bwa", self.__mode, "-t", str(number_of_thread), ref_fasta, rd1.get_path(), ">", sai1_path, "&&",
+                            "bwa", self.__mode, "-t", str(number_of_thread), ref_fasta, rd2.get_path(), ">", sai2_path, "&&",
                             "bwa", "sampe", "-R", "'@RG\\tID:TARGET\\tSM:"+sample_id+"\\tPL:ILLUMINA'", ref_fasta, sai1_path, sai2_path, rd1.get_path(), rd2.get_path(),
                             "|", "samtools", "view", "-Shb", "-o", outbam])
             try:

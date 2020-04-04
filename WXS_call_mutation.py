@@ -81,6 +81,11 @@ if FromBam:
     # #build the tumor bam object
     tumor_bam = BAM(tumor_bam_path)
 else:
+    if not (normal_fq1_path and normal_fq2_path and tumor_fq1_path and tumor_fq2_path):
+        print('please specify --normal_fq1 and --normal_fq2 and tumor_fq1 and tumor_fq2')
+        sys.exit(1)
+
+
     print("started preprocess from fastq at", ctime())
 
     # preprocess the normal bam
@@ -101,16 +106,6 @@ else:
     tumor_bam = BAM(tumor_bam_path)
 
 
-
-
-
-
-
-
-
-
-
-
 #call mutations based on normal bam and tumor bam
 from subprocess import CalledProcessError,run
 from GenomeReference import GenomeReference
@@ -121,7 +116,7 @@ def call_mutation(tumor_bam, normal_bam, out_dir):
 
     vcf_dir = os.path.join(out_dir, 'vcf')
     checkout_dir(vcf_dir)
-    case_mutation_vsf = os.path.join(vcf_dir, sample_id+Separators.sample_name_separator+'somatic.vcf.gz')
+    case_mutation_vsf = os.path.join(vcf_dir, sample_id+Separators.sample_name_separator+'somatic.vcf')
 
     cmd = " ".join(['gatk', 'Mutect2', '-R', GenomeReference.get_reference_fasta(), '-I', tumor_bam.get_path(),
                     '-I', normal_bam.get_path(), '-normal', sample_id, '--germline-resource', StaticPath.germline_file,
